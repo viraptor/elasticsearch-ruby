@@ -5,109 +5,74 @@
 module Elasticsearch
   module API
     module Actions
+      # Creates or updates a document in an index.
+      #
+      # @option arguments [String] :id Document ID          #
+      # *Deprecation notice*:
+      # Specifying types in urls has been deprecated
+      # Deprecated since version 7.0.0
+      #
 
-      # Create or update a document.
+      # @option arguments [String] :index The name of the index          #
+      # *Deprecation notice*:
+      # Specifying types in urls has been deprecated
+      # Deprecated since version 7.0.0
       #
-      # The `index` API will either _create_ a new document, or _update_ an existing one, when a document `:id`
-      # is passed. When creating a document, an ID will be auto-generated, when it's not passed as an argument.
+
+      # @option arguments [String] :type The type of the document *Deprecated*          #
+      # *Deprecation notice*:
+      # Specifying types in urls has been deprecated
+      # Deprecated since version 7.0.0
       #
-      # You can specifically enforce the _create_ operation by setting the `op_type` argument to `create`, or
-      # by using the {Actions#create} method.
+
+      # @option arguments [Hash] :body The document (*Required*)
+
       #
-      # Optimistic concurrency control is performed, when the `version` argument is specified. By default,
-      # no version checks are performed.
+      # @see https://www.elastic.co/guide/en/elasticsearch/reference/master/docs-index_.html
       #
-      # By default, the document will be available for {Actions#get} immediately, for {Actions#search} only
-      # after an index refresh operation has been performed (either automatically or manually).
-      #
-      # @example Create or update a document `myindex/mytype/1`
-      #
-      #     client.index index: 'myindex',
-      #                  type: 'mytype',
-      #                  id: '1',
-      #                  body: {
-      #                   title: 'Test 1',
-      #                   tags: ['y', 'z'],
-      #                   published: true,
-      #                   published_at: Time.now.utc.iso8601,
-      #                   counter: 1
-      #                 }
-      #
-      # @example Refresh the index after the operation (useful e.g. in integration tests)
-      #
-      #     client.index index: 'myindex', type: 'mytype', id: '1', body: { title: 'TEST' }, refresh: true
-      #     client.search index: 'myindex', q: 'title:test'
-      #
-      # @example Create a document with a specific expiration time (TTL)
-      #
-      #     # Decrease the default housekeeping interval first:
-      #     client.cluster.put_settings body: { transient: { 'indices.ttl.interval' => '1s' } }
-      #
-      #     # Enable the `_ttl` property for all types within the index
-      #     client.indices.create index: 'myindex', body: { mappings: { properties: { _ttl: { enabled: true } }  } }
-      #
-      #     client.index index: 'myindex', type: 'mytype', id: '1', body: { title: 'TEST' }, ttl: '5s'
-      #
-      #     sleep 3 and client.get index: 'myindex', type: 'mytype', id: '1'
-      #     # => {"_index"=>"myindex" ... "_source"=>{"title"=>"TEST"}}
-      #
-      #     sleep 3 and client.get index: 'myindex', type: 'mytype', id: '1'
-      #     # => Elasticsearch::Transport::Transport::Errors::NotFound: [404] ...
-      #
-      # @option arguments [String] :id Document ID (optional, will be auto-generated if missing)
-      # @option arguments [String] :index The name of the index (*Required*)
-      # @option arguments [String] :type The type of the document (*Required*)
-      # @option arguments [Hash] :body The document
-      # @option arguments [String] :consistency Explicit write consistency setting for the operation
-      #                                         (options: one, quorum, all)
-      # @option arguments [Boolean] :include_type_name Whether a type should be expected in the body of the mappings.
-      # @option arguments [String] :op_type Explicit operation type (options: index, create)
-      # @option arguments [String] :parent ID of the parent document
-      # @option arguments [String] :percolate Percolator queries to execute while indexing the document
-      # @option arguments [Boolean] :refresh Refresh the index after performing the operation
-      # @option arguments [String] :replication Specific replication type (options: sync, async)
-      # @option arguments [String] :routing Specific routing value
-      # @option arguments [Time] :timeout Explicit operation timeout
-      # @option arguments [Time] :timestamp Explicit timestamp for the document
-      # @option arguments [Duration] :ttl Expiration time for the document
-      # @option arguments [Number] :version Explicit version number for concurrency control
-      # @option arguments [String] :version_type Specific version type (options: internal, external, external_gte, force)
-      #
-      # @see https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html
-      #
-      def index(arguments={})
+      def index(arguments = {})
+        raise ArgumentError, "Required argument 'body' missing" unless arguments[:body]
         raise ArgumentError, "Required argument 'index' missing" unless arguments[:index]
-        arguments[:type] ||= DEFAULT_DOC
-        method = arguments[:id] ? HTTP_PUT : HTTP_POST
-        path   = Utils.__pathify Utils.__escape(arguments[:index]),
-                                 Utils.__escape(arguments[:type]),
-                                 Utils.__escape(arguments[:id])
 
+        arguments = arguments.clone
+
+        _id = arguments.delete(:id)
+
+        _index = arguments.delete(:index)
+
+        _type = arguments.delete(:type)
+
+        method = HTTP_PUT
+        path   = if _index && _type && _id
+                   "#{Utils.__listify(_index)}/#{Utils.__listify(_type)}/#{Utils.__listify(_id)}"
+                 elsif _index && _id
+                   "#{Utils.__listify(_index)}/_doc/#{Utils.__listify(_id)}"
+                 elsif _index && _type
+                   "#{Utils.__listify(_index)}/#{Utils.__listify(_type)}"
+                 else
+                   "#{Utils.__listify(_index)}/_doc"
+end
         params = Utils.__validate_and_extract_params arguments, ParamsRegistry.get(__method__)
-        body   = arguments[:body]
+
+        body = arguments[:body]
+
         perform_request(method, path, params, body).body
       end
-
       # Register this action with its valid params when the module is loaded.
       #
-      # @since 6.1.1
+      # @since 6.2.0
       ParamsRegistry.register(:index, [
-          :consistency,
-          :include_type_name,
-          :op_type,
-          :parent,
-          :percolate,
-          :pipeline,
-          :refresh,
-          :replication,
-          :routing,
-          :timeout,
-          :timestamp,
-          :ttl,
-          :version,
-          :version_type,
-          :if_seq_no,
-          :if_primary_term ].freeze)
+        :wait_for_active_shards,
+        :op_type,
+        :refresh,
+        :routing,
+        :timeout,
+        :version,
+        :version_type,
+        :if_seq_no,
+        :if_primary_term,
+        :pipeline
+      ].freeze)
     end
-  end
+    end
 end

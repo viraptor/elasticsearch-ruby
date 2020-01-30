@@ -6,37 +6,33 @@ module Elasticsearch
   module API
     module Cluster
       module Actions
+        # Returns cluster settings.
+        #
 
-        # Get the cluster settings (previously set with {Cluster::Actions#put_settings})
         #
-        # @example Get cluster settings
+        # @see https://www.elastic.co/guide/en/elasticsearch/reference/master/cluster-update-settings.html
         #
-        #     client.cluster.get_settings
-        #
-        # @option arguments [Boolean] :flat_settings Return settings in flat format (default: false)
-        # @option arguments [Boolean] :include_defaults Whether to return all default clusters setting
-        #                                               (default: false)
-        #
-        # @see http://elasticsearch.org/guide/reference/api/admin-cluster-update-settings/
-        #
-        def get_settings(arguments={})
+        def get_settings(arguments = {})
+          arguments = arguments.clone
+
           method = HTTP_GET
           path   = "_cluster/settings"
           params = Utils.__validate_and_extract_params arguments, ParamsRegistry.get(__method__)
-          body   = nil
+
+          body = nil
 
           perform_request(method, path, params, body).body
         end
-
         # Register this action with its valid params when the module is loaded.
         #
-        # @since 6.1.1
+        # @since 6.2.0
         ParamsRegistry.register(:get_settings, [
-            :flat_settings,
-            :master_timeout,
-            :timeout,
-            :include_defaults ].freeze)
+          :flat_settings,
+          :master_timeout,
+          :timeout,
+          :include_defaults
+        ].freeze)
+end
       end
-    end
   end
 end

@@ -6,21 +6,27 @@ module Elasticsearch
   module API
     module Cluster
       module Actions
+        # Returns the information about configured remote clusters.
+        #
 
-        # Returns the configured remote cluster information
         #
+        # @see https://www.elastic.co/guide/en/elasticsearch/reference/master/cluster-remote-info.html
         #
-        # @see http://www.elastic.co/guide/en/elasticsearch/reference/master/cluster-remote-info.html
-        #
-        def remote_info(arguments={})
-          method = Elasticsearch::API::HTTP_GET
+        def remote_info(arguments = {})
+          arguments = arguments.clone
+
+          method = HTTP_GET
           path   = "_remote/info"
           params = {}
-          body   = nil
+
+          body = nil
 
           perform_request(method, path, params, body).body
         end
+  # Register this action with its valid params when the module is loaded.
+  #
+  # @since 6.2.0
+end
       end
-    end
   end
 end

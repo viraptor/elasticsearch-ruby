@@ -5,74 +5,67 @@
 module Elasticsearch
   module API
     module Actions
+      # Returns the source of a document.
+      #
+      # @option arguments [String] :id The document ID          #
+      # *Deprecation notice*:
+      # Specifying types in urls has been deprecated
+      # Deprecated since version 7.0.0
+      #
 
-      # Return a specified document's `_source`.
+      # @option arguments [String] :index The name of the index          #
+      # *Deprecation notice*:
+      # Specifying types in urls has been deprecated
+      # Deprecated since version 7.0.0
       #
-      # The response contains just the original document, as passed to Elasticsearch during indexing.
+
+      # @option arguments [String] :type The type of the document; deprecated and optional starting with 7.0 *Deprecated*          #
+      # *Deprecation notice*:
+      # Specifying types in urls has been deprecated
+      # Deprecated since version 7.0.0
       #
-      # @example Get a document `_source`
+
       #
-      #     client.get_source index: 'myindex', type: 'mytype', id: '1'
+      # @see https://www.elastic.co/guide/en/elasticsearch/reference/master/docs-get.html
       #
-      # @option arguments [String] :id The document ID (*Required*)
-      # @option arguments [String] :index The name of the index (*Required*)
-      # @option arguments [String] :type The type of the document; deprecated and optional starting with 7.0
-      # @option arguments [String] :parent The ID of the parent document
-      # @option arguments [String] :preference Specify the node or shard the operation should be performed on (default: random)
-      # @option arguments [Boolean] :realtime Specify whether to perform the operation in realtime or search mode
-      # @option arguments [Boolean] :refresh Refresh the shard containing the document before performing the operation
-      # @option arguments [String] :routing Specific routing value
-      # @option arguments [List] :_source True or false to return the _source field or not, or a list of fields to return
-      # @option arguments [List] :_source_excludes A list of fields to exclude from the returned _source field
-      # @option arguments [List] :_source_includes A list of fields to extract and return from the _source field
-      # @option arguments [Number] :version Explicit version number for concurrency control
-      # @option arguments [String] :version_type Specific version type (options: internal, external, external_gte, force)
-      #
-      # @see http://elasticsearch.org/guide/reference/api/get/
-      #
-      # @since 0.90.1
-      #
-      def get_source(arguments={})
+      def get_source(arguments = {})
         raise ArgumentError, "Required argument 'index' missing" unless arguments[:index]
-        raise ArgumentError, "Required argument 'id' missing"    unless arguments[:id]
-        arguments[:type] ||= DEFAULT_DOC
+        raise ArgumentError, "Required argument 'id' missing" unless arguments[:id]
+
+        arguments = arguments.clone
+
+        _id = arguments.delete(:id)
+
+        _index = arguments.delete(:index)
+
+        _type = arguments.delete(:type)
 
         method = HTTP_GET
-
-        if arguments[:type]
-          path   = Utils.__pathify Utils.__escape(arguments[:index]),
-                                   Utils.__escape(arguments[:type]),
-                                   Utils.__escape(arguments[:id]),
-                                   '_source'
-        else
-          path   = Utils.__pathify Utils.__escape(arguments[:index]),
-                                   '_source',
-                                   Utils.__escape(arguments[:id])
-        end
-
-
+        path   = if _index && _type && _id
+                   "#{Utils.__listify(_index)}/#{Utils.__listify(_type)}/#{Utils.__listify(_id)}/_source"
+                 else
+                   "#{Utils.__listify(_index)}/_source/#{Utils.__listify(_id)}"
+end
         params = Utils.__validate_and_extract_params arguments, ParamsRegistry.get(__method__)
-        body   = nil
 
-        params[:fields] = Utils.__listify(params[:fields]) if params[:fields]
+        body = nil
 
         perform_request(method, path, params, body).body
       end
-
       # Register this action with its valid params when the module is loaded.
       #
-      # @since 6.1.1
+      # @since 6.2.0
       ParamsRegistry.register(:get_source, [
-          :parent,
-          :preference,
-          :realtime,
-          :refresh,
-          :routing,
-          :_source,
-          :_source_excludes,
-          :_source_includes,
-          :version,
-          :version_type ].freeze)
+        :preference,
+        :realtime,
+        :refresh,
+        :routing,
+        :_source,
+        :_source_excludes,
+        :_source_includes,
+        :version,
+        :version_type
+      ].freeze)
     end
-  end
+    end
 end

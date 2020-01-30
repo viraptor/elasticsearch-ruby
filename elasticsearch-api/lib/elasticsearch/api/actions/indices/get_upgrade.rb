@@ -4,24 +4,26 @@
 
 module Elasticsearch
   module API
-    module Tasks
+    module Indices
       module Actions
-        # Returns information about a task.
+        # The _upgrade API is no longer useful and will be removed.
         #
-        # @option arguments [String] :task_id Return the task with specified id (node_id:task_number)
+        # @option arguments [List] :index A comma-separated list of index names; use `_all` or empty string to perform the operation on all indices
 
         #
-        # @see https://www.elastic.co/guide/en/elasticsearch/reference/master/tasks.html
+        # @see https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-upgrade.html
         #
-        def get(arguments = {})
-          raise ArgumentError, "Required argument 'task_id' missing" unless arguments[:task_id]
-
+        def get_upgrade(arguments = {})
           arguments = arguments.clone
 
-          _task_id = arguments.delete(:task_id)
+          _index = arguments.delete(:index)
 
           method = HTTP_GET
-          path   = "_tasks/#{Utils.__listify(_task_id)}"
+          path   = if _index
+                     "#{Utils.__listify(_index)}/_upgrade"
+                   else
+                     "_upgrade"
+end
           params = Utils.__validate_and_extract_params arguments, ParamsRegistry.get(__method__)
 
           body = nil
@@ -31,9 +33,10 @@ module Elasticsearch
         # Register this action with its valid params when the module is loaded.
         #
         # @since 6.2.0
-        ParamsRegistry.register(:get, [
-          :wait_for_completion,
-          :timeout
+        ParamsRegistry.register(:get_upgrade, [
+          :ignore_unavailable,
+          :allow_no_indices,
+          :expand_wildcards
         ].freeze)
 end
       end

@@ -5,42 +5,70 @@
 module Elasticsearch
   module API
     module Actions
+      # Creates a new document in the index.
+      #
+      # Returns a 409 response when a document with a same ID already exists in the index.
+      #
+      # @option arguments [String] :id Document ID          #
+      # *Deprecation notice*:
+      # Specifying types in urls has been deprecated
+      # Deprecated since version 7.0.0
+      #
 
-      # Create a new document.
+      # @option arguments [String] :index The name of the index          #
+      # *Deprecation notice*:
+      # Specifying types in urls has been deprecated
+      # Deprecated since version 7.0.0
       #
-      # The API will create new document, if it doesn't exist yet -- in that case, it will return
-      # a `409` error (`version_conflict_engine_exception`).
+
+      # @option arguments [String] :type The type of the document *Deprecated*          #
+      # *Deprecation notice*:
+      # Specifying types in urls has been deprecated
+      # Deprecated since version 7.0.0
       #
-      # You can leave out the `:id` parameter for the ID to be generated automatically
+
+      # @option arguments [Hash] :body The document (*Required*)
+
       #
-      # @example Create a document with an ID
+      # @see https://www.elastic.co/guide/en/elasticsearch/reference/master/docs-index_.html
       #
-      #     client.create index: 'myindex',
-      #                  type: 'doc',
-      #                  id: '1',
-      #                  body: {
-      #                   title: 'Test 1'
-      #                 }
-      #
-      # @example Create a document with an auto-generated ID
-      #
-      #     client.create index: 'myindex',
-      #                  type: 'doc',
-      #                  body: {
-      #                   title: 'Test 1'
-      #                 }
-      #
-      # @option (see Actions#index)
-      #
-      # @see https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-index_.html#_automatic_id_generation
-      #
-      def create(arguments={})
-        if arguments[:id]
-          index arguments.update :op_type => 'create'
-        else
-          index arguments
-        end
+      def create(arguments = {})
+        raise ArgumentError, "Required argument 'body' missing" unless arguments[:body]
+        raise ArgumentError, "Required argument 'index' missing" unless arguments[:index]
+        raise ArgumentError, "Required argument 'id' missing" unless arguments[:id]
+
+        arguments = arguments.clone
+
+        _id = arguments.delete(:id)
+
+        _index = arguments.delete(:index)
+
+        _type = arguments.delete(:type)
+
+        method = HTTP_PUT
+        path   = if _index && _type && _id
+                   "#{Utils.__listify(_index)}/#{Utils.__listify(_type)}/#{Utils.__listify(_id)}/_create"
+                 else
+                   "#{Utils.__listify(_index)}/_create/#{Utils.__listify(_id)}"
+end
+        params = Utils.__validate_and_extract_params arguments, ParamsRegistry.get(__method__)
+
+        body = arguments[:body]
+
+        perform_request(method, path, params, body).body
       end
+      # Register this action with its valid params when the module is loaded.
+      #
+      # @since 6.2.0
+      ParamsRegistry.register(:create, [
+        :wait_for_active_shards,
+        :refresh,
+        :routing,
+        :timeout,
+        :version,
+        :version_type,
+        :pipeline
+      ].freeze)
     end
-  end
+    end
 end

@@ -6,46 +6,36 @@ module Elasticsearch
   module API
     module Cat
       module Actions
+        # Returns information about snapshot repositories registered in the cluster.
+        #
 
-        # Shows all repositories registered in a cluster
         #
-        # @example Return list of repositories
+        # @see https://www.elastic.co/guide/en/elasticsearch/reference/master/cat-repositories.html
         #
-        #     client.cat.repositories
-        #
-        # @example Return only id for each repository
-        #
-        #     client.cat.repositories h: 'id'
-        #
-        # @option arguments [Time] :master_timeout Explicit operation timeout for connection to master node
-        # @option arguments [List] :h Comma-separated list of column names to display
-        # @option arguments [Boolean] :help Return help information
-        # @option arguments [Boolean] :v Verbose mode. Display column headers
-        # @option arguments [List] :s Comma-separated list of column names or column aliases to sort by
-        #
-        # @see https://www.elastic.co/guide/en/elasticsearch/reference/current/cat-repositories.html
-        #
-        def repositories(arguments={})
+        def repositories(arguments = {})
+          arguments = arguments.clone
+
           method = HTTP_GET
           path   = "_cat/repositories"
           params = Utils.__validate_and_extract_params arguments, ParamsRegistry.get(__method__)
-          body   = nil
+
+          body = nil
 
           perform_request(method, path, params, body).body
         end
-
         # Register this action with its valid params when the module is loaded.
         #
-        # @since 6.1.1
+        # @since 6.2.0
         ParamsRegistry.register(:repositories, [
-            :format,
-            :local,
-            :master_timeout,
-            :h,
-            :help,
-            :s,
-            :v ].freeze)
+          :format,
+          :local,
+          :master_timeout,
+          :h,
+          :help,
+          :s,
+          :v
+        ].freeze)
+end
       end
-    end
   end
 end
